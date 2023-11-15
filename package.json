@@ -9,16 +9,20 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@types/cheerio": "^0.22.34",
+    "@types/puppeteer": "^7.0.4",
+    "cheerio": "^1.0.0-rc.12",
+    "next": "14.0.2",
+    "puppeteer": "^21.5.2",
     "react": "^18",
-    "react-dom": "^18",
-    "next": "14.0.2"
+    "react-dom": "^18"
   },
   "devDependencies": {
-    "typescript": "^5",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "eslint": "^8",
-    "eslint-config-next": "14.0.2"
+    "eslint-config-next": "14.0.2",
+    "typescript": "^5"
   }
 }

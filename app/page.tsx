@@ -1,95 +1,63 @@
-import Image from 'next/image'
-import styles from './page.module.css'
+import { ScraperButton } from '@/components/ScraperButton/index'
 
-export default function Home() {
+const puppeteer = require('puppeteer')
+const cheerio = require('cheerio')
+
+export default function Home({ searchParams }: any) {
+
+  if (searchParams.runScrapper) {
+    console.log(searchParams)
+    runScraper()
+  }
+
   return (
-    <main className={styles.main}>
-      <div className={styles.description}>
-        <p>
-          Get started by editing&nbsp;
-          <code className={styles.code}>app/page.tsx</code>
-        </p>
-        <div>
-          <a
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{' '}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className={styles.vercelLogo}
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
-        </div>
-      </div>
-
-      <div className={styles.center}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
-
-      <div className={styles.grid}>
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Docs <span>-&gt;</span>
-          </h2>
-          <p>Find in-depth information about Next.js features and API.</p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Learn <span>-&gt;</span>
-          </h2>
-          <p>Learn about Next.js in an interactive course with&nbsp;quizzes!</p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Templates <span>-&gt;</span>
-          </h2>
-          <p>Explore starter templates for Next.js.</p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Deploy <span>-&gt;</span>
-          </h2>
-          <p>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
+    <div>
+      <ScraperButton />
+    </div>
   )
+}
+
+const runScraper = async () => {
+  const browser = await puppeteer.launch({
+    headless: false
+  });
+
+  const page = await browser.newPage();
+
+  await page.setViewport({
+    width: 1300,
+    height: 600
+  });
+
+  const endpoint = 'https://clutch.co/web-developers?client_budget=25000';
+  await page.goto(endpoint, {
+    waitUntil: 'domcontentloaded'
+  });
+
+  await wait(3000);
+
+  await scrapeData(page);
+};
+
+const wait = (ms: number) => {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+const scrapeData = async (page: any) => {
+  const $ = cheerio.load(await page.content())
+
+  if (!await page.$('ul.directory-list')) {
+    console.log('Not found')
+    return
+  }
+
+  const liTags = $('ul.directory-list > li')
+
+
+  liTags.each((i: any, el: any) => {
+    const categoryUrl = $(el).find('.website-link__item').attr('href')
+    const categoryTitle = $(el).find('.company_info > a').text().trim()
+
+    console.log({ categoryUrl, categoryTitle })
+  })
 }
