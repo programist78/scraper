@@ -15,9 +15,24 @@ export const ScraperButton: FC<ScraperButtonProps> = () => {
     }, 5000)
   }
 
+  const handleClickWebsite = () => {
+    router.push(`/?runWebsiteScrapper=${true}`)
+
+    setTimeout(() => {
+      router.push('/')
+    }, 5000)
+  }
+
   return (
-    <button onClick={handleClick}>
-      Run
-    </button>
+    <div>
+      <button onClick={handleClick}>
+        Run
+      </button>
+      <div>
+        <button onClick={handleClickWebsite}>
+          Run Scrap Website
+        </button>
+      </div>
+    </div>
   );
 };
