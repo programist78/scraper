@@ -1,4 +1,5 @@
 import { Page } from "@/node_modules/puppeteer/lib/types";
+import { mailService } from "@/utils/services/mailService";
 
 const puppeteer = require('puppeteer')
 const cheerio = require('cheerio')
@@ -49,13 +50,15 @@ export const scrapeAllEmails = async (page: Page) => {
 
     const linksTags = $('a')
 
-    linksTags.each((i: any, el: any) => {
+    linksTags.each(async (i: any, el: any) => {
         const href = $(el).attr('href')
 
         if (href?.includes('@')) {
             const replacedEmail = href.replace(/mailto:/g, '')
 
-            console.log({ email: replacedEmail })
+            await mailService.send({
+                to: 'plesh88089@gmail.com'
+            })
         }
     })
 }
