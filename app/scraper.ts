@@ -1,5 +1,4 @@
 import { Page } from "@/node_modules/puppeteer/lib/types";
-import { mailService } from "@/utils/services/mailService";
 
 const puppeteer = require('puppeteer')
 const cheerio = require('cheerio')
@@ -28,7 +27,10 @@ export const runScraper = async ({ endpoint, scrapeDataFn }: RunScraper) => {
 
         await wait(3000);
 
-        await scrapeDataFn(page)
+        
+       const scrapeData: any = await scrapeDataFn(page)
+    //    console.log(scrapeData)
+       return scrapeData
     } catch (error) {
         console.error('Error occurred during scraping:', error);
     } finally {
@@ -56,28 +58,34 @@ export const scrapeAllEmails = async (page: Page) => {
         if (href?.includes('@')) {
             const replacedEmail = href.replace(/mailto:/g, '')
 
-            await mailService.send({
-                to: 'plesh88089@gmail.com'
-            })
+            console.log(replacedEmail)
         }
     })
 }
 
 export const scrapeWebsites = async (page: any) => {
-    const $ = cheerio.load(await page.content())
+    const $ = cheerio.load(await page.content());
 
     if (!await page.$('ul.directory-list')) {
-        console.log('Not found')
-        return
+        console.log('Not found');
+        return;
     }
 
-    const liTags = $('ul.directory-list > li')
+    const liTags = $('ul.directory-list > li');
 
+    // Используем map для сбора данных в массив, а затем get() для преобразования в стандартный массив JavaScript
+    const data = liTags.map((i: any, el: any) => {
+        const categoryUrl = $(el).find('.website-link__item').attr('href');
+        const clutchLink = $(el).find('.directory_profile').attr('href');
+        const categoryTitle = $(el).find('.company_info > a').text().trim();
 
-    liTags.each((i: any, el: any) => {
-        const categoryUrl = $(el).find('.website-link__item').attr('href')
-        const categoryTitle = $(el).find('.company_info > a').text().trim()
+        return {
+            companyName: categoryTitle,
+            websiteLink: categoryUrl,
+            businessType: "financial-planners/wealth-management",
+            clutchLink
+        };
+    }).get(); // Преобразуем результат map в массив
 
-        console.log({ categoryUrl, categoryTitle })
-    })
+    return data;
 }
