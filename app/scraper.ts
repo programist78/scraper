@@ -27,7 +27,7 @@ export const runScraper = async ({ endpoint, scrapeDataFn }: RunScraper) => {
 
         await wait(3000);
 
-        
+
        const scrapeData: any = await scrapeDataFn(page)
     //    console.log(scrapeData)
        return scrapeData
@@ -89,3 +89,14 @@ export const scrapeWebsites = async (page: any) => {
 
     return data;
 }
+
+export const scrapeProfile = async (page: any) => {
+    const $ = cheerio.load(await page.content());
+    const links = $('a.visit-website');
+    const data = links.map((i: any, el: any) => {
+        const href = $(el).attr('href');
+        return href;
+    }).get();
+
+     return Array.isArray(data) && data.length ? data[0] : null;
+};
