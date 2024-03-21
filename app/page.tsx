@@ -116,34 +116,33 @@ export default function Home({ searchParams }: any) {
     const runScrapers = async () => {
       console.log('Start Profile scrapers');
       const PAGE_SIZE = 5;
-      const scrappedData: string[] = [];
+      const scrappedData: Record<string, string>[] = [];
       let currentPage = 0;
 
       let clientsData = await getClients(++currentPage, PAGE_SIZE);
       while(clientsData.length) {
         console.log('>>> Current page:', currentPage, 'Clients:', clientsData.length);
+        console.log('>>> Clients:', JSON.stringify(clientsData, null, 2));
 
         await Promise.all(clientsData.map(async (client: any) => {
           const profileUrl = `https://clutch.co${client.clutchLink}`;
-          const clientsData = await runScraper({
+          const data = await runScraper({
             endpoint: profileUrl,
             scrapeDataFn: scrapeProfile,
           });
 
-          if (clientsData) {
-            await updateClientRun({
-              websiteLink: clientsData,
-              id: client.id
-            });
+          if (data) {
+            scrappedData.push({ id: client.id, websiteLink: data })
           }
-
-          scrappedData.push(clientsData);
         }));
 
         clientsData = await getClients(++currentPage, PAGE_SIZE);
       }
 
       console.log('>>> Scrapped data:', JSON.stringify(scrappedData, null, 2));
+      for await (const { id, websiteLink } of scrappedData) {
+        await updateClientRun({ id, websiteLink });
+      }
 
     };
 

@@ -43,7 +43,7 @@ export const ScraperButton: FC<ScraperButtonProps> = () => {
       </div>
       <div>
         <button onClick={handleClickProfile}>
-          Run Scrap Profile
+          Run Scrap Website from Profile
         </button>
       </div>
     </div>
