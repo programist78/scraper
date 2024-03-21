@@ -1,6 +1,6 @@
 import { ScraperButton } from '@/components/ScraperButton/index'
 import { endpoints } from './endpoints';
-import { runScraper, scrapeAllEmails, scrapeWebsites,  } from './scraper';
+import { runScraper, scrapeAllEmails, scrapeWebsites, scrapeProfile  } from './scraper';
 // import { addClientRun } from './utils/AddClientRun';
 import { ApolloClient, InMemoryCache, gql } from '@apollo/client';
 
@@ -8,6 +8,7 @@ const client = new ApolloClient({
   uri: 'http://localhost:4000/graphql',
   cache: new InMemoryCache(),
 });
+
 
 const ADD_CLIENT = gql`
 mutation Mutation($input: addClientsInput) {
@@ -17,6 +18,15 @@ mutation Mutation($input: addClientsInput) {
     websiteLink
     businessType
     clutchLink
+  }
+}
+`;
+
+const updateClient = gql`
+mutation Mutation($input: updateClientsInput) {
+  updateClient(input: $input) {
+    id
+    websiteLink
   }
 }
 `;
@@ -34,6 +44,50 @@ async function addClientRun(data: any) {
     } catch (err) {
         console.error("Error running mutation: ", err);
     }
+}
+
+async function updateClientRun(data: any) {
+  const { __typename, ...inputData } = data;
+  try {
+      const response = await client.mutate({
+          mutation: updateClient,
+          variables: {
+              input: inputData
+          },
+          refetchQueries: ['GetClients']
+      });
+      console.log("Mutation completed: ", response);
+  } catch (err) {
+      console.error("Error running mutation: ", JSON.stringify(err, null, 2));
+  }
+}
+
+async function getClients(page: number = 1, size: number = 5) {
+  try {
+    const response = await client.query({
+      query: gql`
+        query GetClients($page: Int!, $size: Int!) {
+          getClientsWithoutWebsite( input: {page: $page, size: $size }) {
+            id
+            email
+            companyName
+            websiteLink
+            businessType
+            clutchLink
+          }
+        }
+      `,
+      variables: {
+        page,
+        size,
+      },
+      fetchPolicy: 'no-cache'
+    });
+
+    return response.data.getClientsWithoutWebsite;
+  } catch (err) {
+    console.error("Error running query: ", JSON.stringify(err, null, 2));
+  }
 }
 
 export default function Home({ searchParams }: any) {
@@ -58,6 +112,43 @@ export default function Home({ searchParams }: any) {
     runScrapers();
   }
 
+  if (searchParams.runProfileScrapper) {
+    const runScrapers = async () => {
+      console.log('Start Profile scrapers');
+      const PAGE_SIZE = 5;
+      const scrappedData: Record<string, string>[] = [];
+      let currentPage = 0;
+
+      let clientsData = await getClients(++currentPage, PAGE_SIZE);
+      while(clientsData.length) {
+        console.log('>>> Current page:', currentPage, 'Clients:', clientsData.length);
+        console.log('>>> Clients:', JSON.stringify(clientsData, null, 2));
+
+        await Promise.all(clientsData.map(async (client: any) => {
+          const profileUrl = `https://clutch.co${client.clutchLink}`;
+          const data = await runScraper({
+            endpoint: profileUrl,
+            scrapeDataFn: scrapeProfile,
+          });
+
+          if (data) {
+            scrappedData.push({ id: client.id, websiteLink: data })
+          }
+        }));
+
+        clientsData = await getClients(++currentPage, PAGE_SIZE);
+      }
+
+      console.log('>>> Scrapped data:', JSON.stringify(scrappedData, null, 2));
+      for await (const { id, websiteLink } of scrappedData) {
+        await updateClientRun({ id, websiteLink });
+      }
+
+    };
+
+    runScrapers();
+  }
+
   if (searchParams.runWebsiteScrapper) {
     const startIndex = 0
     const length = 5
@@ -65,7 +156,6 @@ export default function Home({ searchParams }: any) {
 
     const runScrapers = async () => {
       console.log('Start Website scrapers');
-
       const websiteScrapers = Array.from({ length: length }, async (_, index) => {
         const currentPage = startIndex + index;
         // const endpoint = `https://clutch.co/call-centers/answering-services?page=${currentPage}`;
@@ -97,4 +187,3 @@ export default function Home({ searchParams }: any) {
     </div>
   )
 }
-
